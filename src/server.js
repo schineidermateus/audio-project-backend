@@ -143,6 +143,62 @@ app.post('/api/cut', upload.single('mp3File'), async (req, res) => {
         }).save(outputPath); // Salva o arquivo cortado
 });
 
+// ... (imports, uploadDir, storage, upload setup, e as rotas /api/join e /api/cut permanecem)
+
+// Rota para MIXAR dois MP3s (Mesclagem Simultânea)
+// Usamos .array() para receber os dois arquivos de entrada
+app.post('/api/mix', upload.array('mp3Files', 2), async (req, res) => {
+    const inputFiles = req.files;
+    
+    if (!inputFiles || inputFiles.length !== 2) {
+        return res.status(400).send('É necessário enviar exatamente dois arquivos MP3 para a mixagem.');
+    }
+    
+    const [file1, file2] = inputFiles;
+
+    const outputFileName = `mixed-${Date.now()}.mp3`;
+    const outputPath = path.join(uploadDir, outputFileName);
+    
+    console.log(`Iniciando mixagem de dois arquivos: ${file1.originalname} e ${file2.originalname}`);
+
+    // Lógica do FFmpeg para Mixagem (usando o filtro 'amix'):
+    ffmpeg()
+        // Adiciona o primeiro input
+        .input(file1.path) 
+        // Adiciona o segundo input
+        .input(file2.path) 
+        
+        // Aplica o filtro complexo 'amix'
+        // [0:a] e [1:a] referenciam o stream de áudio (a) do primeiro (0) e segundo (1) input.
+        // inputs=2: Diz ao filtro 'amix' para combinar 2 streams.
+        // [a] é o nome do stream de saída.
+        .complexFilter([
+            '[0:a] [1:a] amix=inputs=2 [a]'
+        ], 'a') // O segundo argumento 'a' garante que o stream de áudio final seja usado
+        
+        .on('end', () => {
+            console.log('Mixagem concluída! Enviando arquivo...');
+            
+            // 1. Envia o arquivo ao cliente
+            res.download(outputPath, outputFileName, (err) => {
+                if (err) {
+                    console.error('Erro no download:', err);
+                }
+                // 2. Limpa os arquivos temporários após o envio
+                inputFiles.forEach(file => fs.unlinkSync(file.path));
+                fs.unlinkSync(outputPath);
+            });
+
+        }).on('error', (err, stdout, stderr) => {
+            console.error('Erro no FFmpeg:', err.message, stdout, stderr);
+            res.status(500).send('Erro no processamento do áudio.');
+            
+            // Limpa os arquivos de entrada em caso de erro
+            inputFiles.forEach(file => fs.unlinkSync(file.path));
+
+        }).save(outputPath); // Salva o arquivo mixado
+});
+
 app.listen(PORT, () => {
     console.log(`Backend rodando na porta ${PORT}`);
 });
