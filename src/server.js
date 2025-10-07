@@ -95,6 +95,54 @@ app.post('/api/join', upload.array('mp3Files', 10), async (req, res) => {
     }).mergeToFile(outputPath, uploadDir); // Concatena e salva no caminho de saída
 });
 
+// Rota para CORTAR um MP3
+// Usamos .single() pois o usuário enviará apenas um arquivo
+app.post('/api/cut', upload.single('mp3File'), async (req, res) => {
+    const inputFile = req.file;
+    // O Multer salva campos de texto em req.body
+    const { startTime, duration } = req.body; 
+
+    if (!inputFile || !startTime || !duration) {
+        return res.status(400).send('É necessário enviar um arquivo e especificar o tempo de início e a duração do corte.');
+    }
+    
+    // Verificações básicas de tempo (você pode querer validações mais robustas)
+    if (isNaN(parseFloat(startTime)) || isNaN(parseFloat(duration))) {
+         return res.status(400).send('Tempo de início e duração devem ser números válidos (segundos).');
+    }
+
+    const outputFileName = `cut-${Date.now()}.mp3`;
+    const outputPath = path.join(uploadDir, outputFileName);
+    
+    console.log(`Iniciando corte de áudio: Início=${startTime}s, Duração=${duration}s`);
+
+    // Lógica do FFmpeg para Corte:
+    ffmpeg(inputFile.path)
+        .setStartTime(startTime)  // Define o tempo de início do corte (em segundos ou HH:MM:SS)
+        .setDuration(duration)    // Define a duração do segmento a ser extraído (em segundos)
+        .on('end', () => {
+            console.log('Corte concluído! Enviando arquivo...');
+            
+            // 1. Envia o arquivo ao cliente
+            res.download(outputPath, outputFileName, (err) => {
+                if (err) {
+                    console.error('Erro no download:', err);
+                }
+                // 2. Limpa os arquivos temporários após o envio
+                fs.unlinkSync(inputFile.path);
+                fs.unlinkSync(outputPath);
+            });
+
+        }).on('error', (err, stdout, stderr) => {
+            console.error('Erro no FFmpeg:', err.message, stdout, stderr);
+            res.status(500).send('Erro no processamento do áudio.');
+            
+            // Limpa o arquivo de entrada em caso de erro
+            fs.unlinkSync(inputFile.path);
+
+        }).save(outputPath); // Salva o arquivo cortado
+});
+
 app.listen(PORT, () => {
     console.log(`Backend rodando na porta ${PORT}`);
 });
