@@ -65,3 +65,8 @@ O **Dockerfile** instala o **FFmpeg** e as dependências do Node.js automaticame
 ```bash
 docker build -t backend .
 docker run -p 3000:3000 backend
+````
+
+---
+
+📄 **Licença:** Livre para uso educacional e de pesquisa.
