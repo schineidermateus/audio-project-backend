@@ -63,8 +63,8 @@ O backend é totalmente **containerizado**.
 O **Dockerfile** instala o **FFmpeg** e as dependências do Node.js automaticamente.
 
 ```bash
-docker build -t backend .
-docker run -p 3000:3000 backend
+docker audio-project-backend -t audio-project-backend .
+docker run -p 3000:3000 audio-project-backend
 ````
 
 ---
