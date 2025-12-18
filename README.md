@@ -57,15 +57,6 @@ e garante a **limpeza dos arquivos temporários** (`uploads/`) no sistema de arq
 
 ---
 
-## 🧩 Boas Práticas
-
-- Centralize os logs de erro no `audio.service.js` para melhor rastreabilidade.  
-- Utilize **async/await** nas operações de processamento.  
-- Valide os arquivos enviados antes de processá-los (tipo MIME e extensão).  
-- Use **variáveis de ambiente (.env)** para caminhos e configurações de porta.
-
----
-
 ## 🐳 Execução via Docker
 
 O backend é totalmente **containerizado**.  
